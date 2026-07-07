@@ -4,11 +4,11 @@ import { loginUser } from '../api/api'
 import useAuthStore from '../store/authStore'
 
 export default function Login() {
-  const [email, setEmail]       = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const { setAuth }             = useAuthStore()
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const { setAuth, role }       = useAuthStore()
   const navigate                = useNavigate()
 
   async function handleLogin(e) {
@@ -17,16 +17,22 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res  = await loginUser({ email, password })
-      const data = res.data
-      const name =
-        data.name || data.username || data.fullName ||
-        (data.user && (data.user.name || data.user.username)) ||
-        email.split('@')[0]
-      setAuth(data.token, { name, email })
-      navigate('/')
+      const res   = await loginUser({ email, password })
+      // Backend returns plain JWT string as text
+      const token = res.data
+      setAuth(token)
+
+      // Redirect based on role decoded from token
+      const savedRole = localStorage.getItem('nirvana_role')
+      if (savedRole === 'DOCTOR') {
+        navigate('/doctor/dashboard')
+      } else {
+        navigate('/patient/dashboard')
+      }
+
     } catch (err) {
-      setError('Invalid email or password. Please try again.')
+      const msg = err.response?.data?.error || 'Invalid email or password.'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -54,7 +60,8 @@ export default function Login() {
         </p>
 
         <div className="mt-12 flex flex-col gap-4 relative z-10">
-          {['Daily mood tracking with trends',
+          {[
+            'Daily mood tracking with trends',
             'Private journal with emotion analysis',
             'AI companion that knows your history',
             'Weekly wellness reports',
@@ -73,7 +80,9 @@ export default function Login() {
         <div className="w-full max-w-sm">
 
           <h2 className="text-2xl font-medium text-gray-800 mb-2">Welcome back</h2>
-          <p className="text-gray-500 text-sm mb-8">Sign in to continue your wellness journey.</p>
+          <p className="text-gray-500 text-sm mb-8">
+            Sign in to continue your wellness journey.
+          </p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-6">
