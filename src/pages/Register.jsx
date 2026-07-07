@@ -4,11 +4,12 @@ import { registerUser } from '../api/api'
 import useAuthStore from '../store/authStore'
 
 export default function Register() {
-  const [name, setName]         = useState('')
-  const [email, setEmail]       = useState('')
+  const [username, setUsername] = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [role,     setRole]     = useState('PATIENT')
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
   const { setAuth }             = useAuthStore()
   const navigate                = useNavigate()
 
@@ -24,20 +25,22 @@ export default function Register() {
     setLoading(true)
 
     try {
-      const res  = await registerUser({ name, email, password })
-      const data = res.data
-      const userName =
-        data.name || data.username || data.fullName ||
-        (data.user && (data.user.name || data.user.username)) ||
-        name
-      setAuth(data.token, { name: userName, email })
-      navigate('/')
-    } catch (err) {
-      if (err.response?.status === 409) {
-        setError('This email is already registered. Try logging in.')
+      // Backend expects: { username, email, password, role }
+      const res   = await registerUser({ username, email, password, role })
+      // Backend returns plain JWT string
+      const token = res.data
+      setAuth(token)
+
+      // Redirect based on role
+      if (role === 'DOCTOR') {
+        navigate('/doctor/dashboard')
       } else {
-        setError('Something went wrong. Please try again.')
+        navigate('/patient/dashboard')
       }
+
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Something went wrong. Please try again.'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -65,7 +68,8 @@ export default function Register() {
         </p>
 
         <div className="mt-12 flex flex-col gap-4 relative z-10">
-          {['Free to use — no credit card needed',
+          {[
+            'Free to use — no credit card needed',
             'Your data is private and secure',
             'AI powered insights from day one',
             'Find mental health support near you',
@@ -84,7 +88,9 @@ export default function Register() {
         <div className="w-full max-w-sm">
 
           <h2 className="text-2xl font-medium text-gray-800 mb-2">Create account</h2>
-          <p className="text-gray-500 text-sm mb-8">Start your mental wellness journey today.</p>
+          <p className="text-gray-500 text-sm mb-8">
+            Start your mental wellness journey today.
+          </p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-6">
@@ -94,15 +100,46 @@ export default function Register() {
 
           <form onSubmit={handleRegister} className="flex flex-col gap-5">
 
+            {/* Role selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                I am a...
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole('PATIENT')}
+                  className={`py-3 rounded-xl text-sm font-medium border-2 transition-all
+                    ${role === 'PATIENT'
+                      ? 'border-teal bg-teal-pale text-teal-dark'
+                      : 'border-gray-200 bg-white text-gray-500 hover:border-teal'
+                    }`}
+                >
+                  🧘 Patient
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('DOCTOR')}
+                  className={`py-3 rounded-xl text-sm font-medium border-2 transition-all
+                    ${role === 'DOCTOR'
+                      ? 'border-teal bg-teal-pale text-teal-dark'
+                      : 'border-gray-200 bg-white text-gray-500 hover:border-teal'
+                    }`}
+                >
+                  🩺 Doctor
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full name
+                Username
               </label>
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Your username"
                 required
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-800 text-sm outline-none focus:border-teal transition-all"
               />
