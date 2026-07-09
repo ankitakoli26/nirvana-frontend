@@ -19,14 +19,14 @@ const tips = [
 ]
 
 export default function Dashboard() {
-  const { user }            = useAuthStore()
-  const [moods, setMoods]   = useState([])
+  const { user }              = useAuthStore()
+  const [moods,   setMoods]   = useState([])
   const [loading, setLoading] = useState(true)
 
-  const name    = user?.name || user?.username || 'Friend'
-  const hour    = new Date().getHours()
+  const name     = user?.name || user?.username || 'Friend'
+  const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const tip     = tips[new Date().getDay()]
+  const tip      = tips[new Date().getDay()]
 
   useEffect(() => {
     getMoodHistory()
@@ -35,27 +35,21 @@ export default function Dashboard() {
         setMoods(data.slice(-7))
       })
       .catch(() => {
-        // Demo data when backend not ready
         setMoods([
-          { mood: 4, createdAt: '2026-04-01' },
-          { mood: 6, createdAt: '2026-04-02' },
-          { mood: 7, createdAt: '2026-04-03' },
-          { mood: 5, createdAt: '2026-04-04' },
-          { mood: 8, createdAt: '2026-04-05' },
-          { mood: 6, createdAt: '2026-04-06' },
-          { mood: 7, createdAt: '2026-04-07' },
+          { moodScore: 4 }, { moodScore: 6 }, { moodScore: 7 },
+          { moodScore: 5 }, { moodScore: 8 }, { moodScore: 6 }, { moodScore: 7 },
         ])
       })
       .finally(() => setLoading(false))
   }, [])
 
   const avg = moods.length
-    ? (moods.reduce((s, m) => s + (m.mood || m.score || 0), 0) / moods.length).toFixed(1)
+    ? (moods.reduce((s, m) => s + (m.moodScore || m.mood || 0), 0) / moods.length).toFixed(1)
     : '—'
 
   const chartData = moods.map((m, i) => ({
-    day: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],
-    mood: m.mood || m.score || 0
+    day:  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],
+    mood: m.moodScore || m.mood || 0
   }))
 
   return (
@@ -72,17 +66,16 @@ export default function Dashboard() {
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               {new Date().toLocaleDateString('en-IN', {
-                weekday: 'long', year: 'numeric',
-                month: 'long', day: 'numeric'
+                weekday:'long', year:'numeric', month:'long', day:'numeric'
               })}
             </p>
           </div>
           <div className="flex gap-3">
-            <Link to="/mood"
+            <Link to="/patient/mood"
               className="px-4 py-2 bg-teal text-white rounded-lg text-sm font-medium hover:bg-teal-dark transition-all hover:-translate-y-0.5">
               + Log mood
             </Link>
-            <Link to="/journal"
+            <Link to="/patient/journal"
               className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-all">
               ✏️ Write
             </Link>
@@ -91,9 +84,7 @@ export default function Dashboard() {
 
         {/* Hero banner */}
         <div className="rounded-2xl p-8 mb-7 relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #141e35 0%, #1e3a5f 60%, #0f4a3a 100%)'
-          }}>
+          style={{ background:'linear-gradient(135deg, #141e35 0%, #1e3a5f 60%, #0f4a3a 100%)' }}>
           <div className="absolute top-[-70px] right-[-50px] w-56 h-56 rounded-full bg-teal opacity-15" />
           <h2 className="text-teal-light text-2xl font-medium mb-2 relative z-10">
             How are you feeling today?
@@ -102,11 +93,11 @@ export default function Dashboard() {
             Your mental wellness journey is unique. Track, reflect, and grow.
           </p>
           <div className="flex gap-3 relative z-10">
-            <Link to="/mood"
+            <Link to="/patient/mood"
               className="px-5 py-2.5 bg-teal text-white rounded-lg text-sm font-medium hover:bg-teal-dark transition-all">
               😊 Log today's mood
             </Link>
-            <Link to="/chat"
+            <Link to="/patient/chat"
               className="px-5 py-2.5 text-white/85 rounded-lg text-sm border border-white/20 hover:bg-white/10 transition-all">
               🤖 Talk to AI
             </Link>
@@ -116,10 +107,10 @@ export default function Dashboard() {
         {/* Stat cards */}
         <div className="grid grid-cols-4 gap-4 mb-7">
           {[
-            { value: avg,           label: 'Avg mood this week', icon: '😊', color: 'bg-teal-pale' },
-            { value: moods.length,  label: 'Moods logged',       icon: '📊', color: 'bg-amber-50'  },
-            { value: '5🔥',         label: 'Day streak',         icon: '🔥', color: 'bg-red-50'    },
-            { value: 'Joy',         label: 'Top emotion',        icon: '🧠', color: 'bg-purple-50' },
+            { value: avg,          label:'Avg mood this week', icon:'😊', color:'bg-teal-pale'  },
+            { value: moods.length, label:'Moods logged',       icon:'📊', color:'bg-amber-50'   },
+            { value: '5🔥',        label:'Day streak',         icon:'🔥', color:'bg-red-50'     },
+            { value: 'Joy',        label:'Top emotion',        icon:'🧠', color:'bg-purple-50'  },
           ].map((s) => (
             <div key={s.label}
               className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-sm transition-all">
@@ -144,33 +135,37 @@ export default function Dashboard() {
                 <div className="text-sm font-medium text-gray-800">This week's mood</div>
                 <div className="text-xs text-gray-500 mt-1">Daily score out of 10</div>
               </div>
-              <Link to="/mood" className="text-xs text-teal hover:text-teal-dark">View all →</Link>
+              <Link to="/patient/mood"
+                className="text-xs text-teal hover:text-teal-dark">
+                View all →
+              </Link>
             </div>
             {loading ? (
-              <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-32 text-gray-400 text-sm gap-2">
+                <div className="w-4 h-4 border-2 border-gray-200 border-t-teal rounded-full animate-spin" />
                 Loading...
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={150}>
                 <LineChart data={chartData}>
-                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[1, 10]} tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="day" tick={{ fontSize:11 }} />
+                  <YAxis domain={[1,10]} tick={{ fontSize:11 }} />
                   <Tooltip />
                   <Line
                     type="monotone"
                     dataKey="mood"
                     stroke="#3d8b75"
                     strokeWidth={2.5}
-                    dot={{ fill: '#3d8b75', r: 4 }}
+                    dot={{ fill:'#3d8b75', r:4 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* AI Companion card */}
+          {/* AI Companion */}
           <div className="rounded-2xl p-6 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #141e35, #1e3a5f)' }}>
+            style={{ background:'linear-gradient(135deg, #141e35, #1e3a5f)' }}>
             <div className="absolute top-[-30px] right-[-30px] w-32 h-32 rounded-full bg-teal opacity-15" />
             <div className="flex items-center gap-3 mb-4 relative z-10">
               <div className="w-10 h-10 rounded-full bg-teal/30 flex items-center justify-center text-lg">
@@ -190,7 +185,7 @@ export default function Dashboard() {
                 Would you like to talk about what's been going well?"
               </p>
             </div>
-            <Link to="/chat"
+            <Link to="/patient/chat"
               className="block w-full py-2.5 bg-teal text-white rounded-lg text-sm font-medium text-center hover:bg-teal-dark transition-all relative z-10">
               Open chat →
             </Link>
@@ -205,10 +200,11 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="text-sm font-medium text-gray-800 mb-4">Quick actions</div>
             {[
-              { to: '/mood',    icon: '😊', label: 'Log today\'s mood',   bg: 'bg-teal-pale'   },
-              { to: '/journal', icon: '📓', label: 'Write journal entry', bg: 'bg-amber-50'    },
-              { to: '/report',  icon: '📊', label: 'View wellness report',bg: 'bg-purple-50'   },
-              { to: '/clinics', icon: '🏥', label: 'Find nearby clinics', bg: 'bg-blue-50'     },
+              { to:'/patient/mood',    icon:'😊', label:"Log today's mood",   bg:'bg-teal-pale'  },
+              { to:'/patient/journal', icon:'📓', label:'Write journal entry', bg:'bg-amber-50'   },
+              { to:'/patient/wellness',icon:'📊', label:'View wellness report',bg:'bg-purple-50'  },
+              { to:'/patient/clinics', icon:'🏥', label:'Find nearby clinics', bg:'bg-blue-50'    },
+              { to:'/patient/consent', icon:'🤝', label:'Invite my doctor',    bg:'bg-green-50'   },
             ].map((item) => (
               <Link key={item.to} to={item.to}
                 className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 mb-2 hover:border-teal hover:bg-teal-pale transition-all group">
@@ -223,7 +219,7 @@ export default function Dashboard() {
 
           {/* Daily wellness tip */}
           <div className="rounded-2xl p-6 border"
-            style={{ background: 'linear-gradient(135deg, #e1f5ee, #d4ede4)', borderColor: 'rgba(61,139,117,0.15)' }}>
+            style={{ background:'linear-gradient(135deg, #e1f5ee, #d4ede4)', borderColor:'rgba(61,139,117,0.15)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-teal/20 flex items-center justify-center text-lg">
                 🌿
@@ -233,9 +229,7 @@ export default function Dashboard() {
                 <div className="text-xs text-teal">Refreshes every day</div>
               </div>
             </div>
-            <p className="text-sm text-teal-dark leading-relaxed italic mb-5">
-              "{tip}"
-            </p>
+            <p className="text-sm text-teal-dark leading-relaxed italic mb-5">"{tip}"</p>
             <div className="bg-teal/10 rounded-xl p-4">
               <div className="text-xs font-medium text-teal-dark mb-2">🧘 Quick breathing exercise</div>
               <p className="text-xs text-teal leading-relaxed">
