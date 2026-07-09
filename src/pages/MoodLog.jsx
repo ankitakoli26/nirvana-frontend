@@ -21,7 +21,6 @@ export default function MoodLog() {
   const [toast,    setToast]    = useState('')
   const [history,  setHistory]  = useState([])
 
-  // Color changes based on score
   const scoreColor =
     score <= 3 ? '#d85a6a' :
     score <= 5 ? '#ef9f27' :
@@ -35,14 +34,16 @@ export default function MoodLog() {
   function loadHistory() {
     getMoodHistory()
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : (res.data?.moods || [])
-        setHistory(data.reverse().slice(0, 10))
+        const data = Array.isArray(res.data)
+          ? res.data
+          : (res.data?.moods || [])
+        setHistory(data.slice().reverse().slice(0, 10))
       })
       .catch(() => {
         setHistory([
-          { mood: 7, note: 'Had a peaceful morning.', createdAt: new Date().toISOString() },
-          { mood: 5, note: 'Felt anxious about deadline.', createdAt: new Date(Date.now() - 86400000).toISOString() },
-          { mood: 8, note: 'Great workout today!', createdAt: new Date(Date.now() - 172800000).toISOString() },
+          { moodScore:7, moodLabel:'calm',    note:'Had a peaceful morning.',    loggedAt: new Date().toISOString() },
+          { moodScore:5, moodLabel:'anxious', note:'Worried about deadline.',    loggedAt: new Date(Date.now()-86400000).toISOString() },
+          { moodScore:8, moodLabel:'happy',   note:'Great workout today!',       loggedAt: new Date(Date.now()-172800000).toISOString() },
         ])
       })
   }
@@ -51,10 +52,19 @@ export default function MoodLog() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!selected) { showToast('❌ Please select a mood label!'); return }
+    if (!selected) {
+      showToast('❌ Please select a mood label!')
+      return
+    }
     setLoading(true)
     try {
-      await logMood({ mood: score, note: `${selected} — ${note}` })
+      // Backend expects capital field names!
+      await logMood({
+        MoodScore: score,
+        MoodLabel: selected,
+        Note:      note,
+        LoggedAt:  new Date().toISOString().slice(0, 19)
+      })
       showToast('✅ Mood logged! 🌿')
       setNote('')
       setSelected('')
@@ -75,7 +85,6 @@ export default function MoodLog() {
     <div className="flex min-h-screen bg-cream">
       <Sidebar />
 
-      {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 bg-navy text-teal-light px-5 py-3 rounded-xl text-sm shadow-lg z-50 border-l-4 border-teal">
           {toast}
@@ -86,7 +95,9 @@ export default function MoodLog() {
 
         <div className="mb-7">
           <h2 className="text-2xl font-medium text-gray-800">Mood Tracker 😊</h2>
-          <p className="text-sm text-gray-500 mt-1">Log how you feel and watch your patterns over time.</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Log how you feel and watch your patterns over time.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-6 items-start">
@@ -97,10 +108,14 @@ export default function MoodLog() {
               <div>
                 <div className="text-sm font-medium text-gray-800">How are you feeling today?</div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date().toLocaleDateString('en-IN', { weekday:'long', month:'long', day:'numeric' })}
+                  {new Date().toLocaleDateString('en-IN', {
+                    weekday:'long', month:'long', day:'numeric'
+                  })}
                 </div>
               </div>
-              <div className="w-12 h-12 bg-teal-pale rounded-xl flex items-center justify-center text-2xl">😊</div>
+              <div className="w-12 h-12 bg-teal-pale rounded-xl flex items-center justify-center text-2xl">
+                😊
+              </div>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -109,15 +124,19 @@ export default function MoodLog() {
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Mood score —{' '}
-                  <span className="font-bold text-lg" style={{ color: scoreColor }}>{score}</span>
+                  <span className="font-bold text-lg" style={{ color: scoreColor }}>
+                    {score}
+                  </span>
                   <span className="text-gray-400"> / 10</span>
                 </label>
                 <input
-                  type="range" min="1" max="10" value={score}
+                  type="range"
+                  min="1" max="10"
+                  value={score}
                   onChange={e => setScore(Number(e.target.value))}
                   className="w-full h-2 rounded-full outline-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, #d85a6a 0%, #ef9f27 40%, #3d8b75 70%, #0f4a3a 100%)`
+                    background: 'linear-gradient(to right, #d85a6a 0%, #ef9f27 40%, #3d8b75 70%, #0f4a3a 100%)'
                   }}
                 />
                 <div className="flex justify-between mt-2">
@@ -153,7 +172,8 @@ export default function MoodLog() {
               {/* Note */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Add a note <span className="text-gray-400 font-normal">(optional)</span>
+                  Add a note{' '}
+                  <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={note}
@@ -177,21 +197,26 @@ export default function MoodLog() {
 
           {/* History */}
           <div>
-            {/* Weekly avg card */}
+            {/* Weekly avg */}
             <div className="bg-teal-pale border border-teal/20 rounded-2xl p-5 mb-4 flex items-center gap-5">
               <div>
                 <div className="text-4xl font-bold text-teal-dark">
                   {history.length
-                    ? (history.slice(0,7).reduce((s,m) => s + (m.mood||0), 0) / Math.min(history.length,7)).toFixed(1)
+                    ? (history.slice(0,7).reduce((s,m) => s + (m.moodScore||0), 0) / Math.min(history.length,7)).toFixed(1)
                     : '—'}
                 </div>
                 <div className="text-sm text-teal mt-1">Weekly average</div>
               </div>
               <div className="flex-1 flex items-end gap-1 h-12">
                 {history.slice(0,7).reverse().map((m,i) => {
-                  const h = Math.max(4, ((m.mood||0)/10)*48)
-                  const c = (m.mood||0) <= 3 ? '#d85a6a' : (m.mood||0) <= 6 ? '#ef9f27' : '#3d8b75'
-                  return <div key={i} style={{ height:`${h}px`, background:c }} className="flex-1 rounded-t" />
+                  const h = Math.max(4, ((m.moodScore||0)/10)*48)
+                  const c = (m.moodScore||0) <= 3 ? '#d85a6a' : (m.moodScore||0) <= 6 ? '#ef9f27' : '#3d8b75'
+                  return (
+                    <div key={i}
+                      style={{ height:`${h}px`, background:c }}
+                      className="flex-1 rounded-t"
+                    />
+                  )
                 })}
               </div>
             </div>
@@ -212,23 +237,29 @@ export default function MoodLog() {
                 </div>
               ) : (
                 history.map((m, i) => {
-                  const s = m.mood || m.score || 0
+                  const s     = m.moodScore || 0
                   const color = s <= 3 ? '#d85a6a' : s <= 6 ? '#ef9f27' : '#3d8b75'
                   const bg    = s <= 3 ? '#fde8eb' : s <= 6 ? '#faeeda' : '#e1f5ee'
                   const icon  = s <= 3 ? '😢' : s <= 5 ? '😐' : s <= 7 ? '🙂' : '😄'
-                  const date  = new Date(m.createdAt || m.created_at || Date.now())
+                  const date  = new Date(m.loggedAt || Date.now())
                     .toLocaleDateString('en-IN', { day:'numeric', month:'short' })
+
                   return (
-                    <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
+                    <div key={i}
+                      className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
                       <div className="w-11 h-11 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
                         style={{ background: bg }}>
                         <span className="text-base">{icon}</span>
                         <span className="text-[10px] font-bold" style={{ color }}>{s}</span>
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-700">Score: {s}/10</div>
+                        <div className="text-sm font-medium text-gray-700 capitalize">
+                          {m.moodLabel || 'General'}
+                        </div>
                         <div className="text-xs text-gray-400 mt-0.5">{date}</div>
-                        {m.note && <div className="text-xs text-gray-500 mt-1">{m.note}</div>}
+                        {m.note && (
+                          <div className="text-xs text-gray-500 mt-1">{m.note}</div>
+                        )}
                       </div>
                       <div className="text-2xl font-bold" style={{ color }}>
                         {s}<span className="text-xs text-gray-400">/10</span>
