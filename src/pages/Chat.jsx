@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import CrisisAlert from '../components/CrisisAlert'
-import { sendMessage } from '../api/api'
+import { sendMessage, getChatHistory } from '../api/api'
 import useAuthStore from '../store/authStore'
 
 const suggestions = [
@@ -13,8 +13,8 @@ const suggestions = [
 
 const demoReplies = [
   "I hear you. That sounds like a lot to carry. Can you tell me more about what's been making you feel this way?",
-  "It's okay to feel that way. Every emotion is valid and temporary.\n\n**Try the 4-7-8 breathing technique:**\n- Inhale for **4 seconds**\n- Hold for **7 seconds**\n- Exhale for **8 seconds**\n\nRepeat 3 times. 🌿",
-  "Thank you for sharing that with me. What's **one small thing** that usually brings you comfort?",
+  "It's okay to feel that way. Every emotion is valid.\n\n**Try the 4-7-8 breathing technique:**\n- Inhale for **4 seconds**\n- Hold for **7 seconds**\n- Exhale for **8 seconds**\n\nRepeat 3 times. 🌿",
+  "Thank you for sharing that. What's **one small thing** that usually brings you comfort?",
   "I'm really glad you're talking about this. What feels most heavy on your heart right now?",
   "You're doing **better than you think**. The fact that you're here shows real self-awareness. 💚",
 ]
@@ -36,15 +36,37 @@ export default function Chat() {
   const [crisis,     setCrisis]   = useState(false)
   const bottomRef                 = useRef(null)
 
-  const name     = user?.name || 'Friend'
+  const name     = user?.name || user?.username || 'Friend'
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+  // Load chat history on page open
+  useEffect(() => {
+    getChatHistory()
+      .then(res => {
+        const history = Array.isArray(res.data) ? res.data : []
+        if (history.length > 0) {
+          // Backend returns { message, role, sentAt }
+          const mapped = history.map(h => ({
+            role: h.role === 'user' ? 'user' : 'ai',
+            text: h.message,
+            time: new Date(h.sentAt || Date.now())
+              .toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
+          }))
+          setMessages(mapped)
+          setShowSugg(false)
+        }
+      })
+      .catch(() => {
+        // No history yet — show welcome message only
+      })
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
   function getTime() {
-    return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
   }
 
   async function handleSend() {
@@ -54,21 +76,29 @@ export default function Chat() {
     setShowSugg(false)
     setInput('')
 
-    const userMsg = { role: 'user', text, time: getTime() }
+    const userMsg = { role:'user', text, time: getTime() }
     setMessages(prev => [...prev, userMsg])
     setLoading(true)
 
     try {
       const res  = await sendMessage({ message: text })
       const data = res.data
-      const reply = data.reply || data.message || data.response || 'I hear you. Tell me more.'
 
-      if (data.crisis) setCrisis(true)
+      // Backend returns { message, role, sentAt }
+      const reply = data.message || data.reply || 'I hear you. Tell me more.'
+      const time  = data.sentAt
+        ? new Date(data.sentAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
+        : getTime()
 
-      setMessages(prev => [...prev, { role: 'ai', text: reply, time: getTime() }])
+      // Crisis detection — if backend sends crisis flag
+      if (data.crisis === true) setCrisis(true)
+
+      setMessages(prev => [...prev, { role:'ai', text: reply, time }])
+
     } catch {
+      // Demo replies when backend not ready
       const reply = demoReplies[messages.length % demoReplies.length]
-      setMessages(prev => [...prev, { role: 'ai', text: reply, time: getTime() }])
+      setMessages(prev => [...prev, { role:'ai', text: reply, time: getTime() }])
     } finally {
       setLoading(false)
     }
@@ -126,7 +156,7 @@ export default function Chat() {
               </div>
               <div>
                 <div className="bg-teal-pale text-teal-dark px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed">
-                  Hi {name.split(' ')[0]}! I'm your Nirvana AI Companion, powered by Gemini. 🌿
+                  Hi {name.split(' ')[0]}! I'm your Nirvana AI Companion 🌿
                   <br /><br />
                   I'm here to listen and support you. How are you feeling today?
                 </div>
@@ -135,14 +165,16 @@ export default function Chat() {
             </div>
           )}
 
-          {/* Chat messages */}
+          {/* Messages */}
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse max-w-xl ml-auto' : 'max-w-xl'}`}
-            >
+            <div key={i}
+              className={`flex gap-3
+                ${msg.role === 'user' ? 'flex-row-reverse max-w-xl ml-auto' : 'max-w-xl'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0
-                ${msg.role === 'user' ? 'bg-teal-dark text-teal-light' : 'bg-navy text-white'}`}>
+                ${msg.role === 'user'
+                  ? 'bg-teal-dark text-teal-light'
+                  : 'bg-navy text-white'
+                }`}>
                 {msg.role === 'user' ? initials : '🤖'}
               </div>
               <div>
@@ -154,7 +186,8 @@ export default function Chat() {
                     }`}
                   dangerouslySetInnerHTML={{ __html: formatText(msg.text) }}
                 />
-                <div className={`text-xs text-gray-400 mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
+                <div className={`text-xs text-gray-400 mt-1
+                  ${msg.role === 'user' ? 'text-right' : ''}`}>
                   {msg.time}
                 </div>
               </div>
@@ -171,7 +204,7 @@ export default function Chat() {
                 {[0,1,2].map(i => (
                   <div key={i}
                     className="w-2 h-2 rounded-full bg-teal"
-                    style={{ animation: `bounce 1.2s ${i * 0.2}s infinite` }}
+                    style={{ animation:`bounce 1.2s ${i*0.2}s infinite` }}
                   />
                 ))}
               </div>
@@ -207,7 +240,7 @@ export default function Chat() {
             rows={1}
             placeholder="Type your message... (Enter to send)"
             className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-800 outline-none focus:border-teal transition-all resize-none bg-cream"
-            style={{ maxHeight: '120px' }}
+            style={{ maxHeight:'120px' }}
           />
           <button
             onClick={handleSend}
