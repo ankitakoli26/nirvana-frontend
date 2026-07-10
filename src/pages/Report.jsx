@@ -1,32 +1,32 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
-import { getMoodHistory, generateReport } from '../api/api'
+import { getWellnessReport, getMoodHistory } from '../api/api'
 import {
   BarChart, Bar, XAxis, YAxis,
   Tooltip, ResponsiveContainer
 } from 'recharts'
 
 export default function Report() {
+  const [report,    setReport]    = useState(null)
   const [moods,     setMoods]     = useState([])
-  const [summary,   setSummary]   = useState('')
-  const [recs,      setRecs]      = useState([])
   const [loading,   setLoading]   = useState(false)
   const [generated, setGenerated] = useState(false)
   const [toast,     setToast]     = useState('')
 
-  function showToast(msg) {
-    setToast(msg)
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
     setTimeout(() => setToast(''), 3000)
   }
 
-  // Week range
+  // Week range display
   const now = new Date()
   const mon = new Date(now)
   mon.setDate(now.getDate() - now.getDay() + 1)
   const sun = new Date(mon)
   sun.setDate(mon.getDate() + 6)
-  const weekRange = `${mon.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${sun.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+  const weekRange = `${mon.toLocaleDateString('en-IN', { day:'numeric', month:'short' })} – ${sun.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}`
 
+  // Load mood history for chart
   useEffect(() => {
     getMoodHistory()
       .then(res => {
@@ -35,48 +35,58 @@ export default function Report() {
       })
       .catch(() => {
         setMoods([
-          { mood: 4 }, { mood: 6 }, { mood: 7 },
-          { mood: 5 }, { mood: 8 }, { mood: 6 }, { mood: 7 }
+          { moodScore:4 }, { moodScore:6 }, { moodScore:7 },
+          { moodScore:5 }, { moodScore:8 }, { moodScore:6 }, { moodScore:7 }
         ])
       })
   }, [])
 
-  const avg = moods.length
-    ? (moods.reduce((s, m) => s + (m.mood || 0), 0) / moods.length).toFixed(1)
-    : '—'
-
   const chartData = moods.map((m, i) => ({
-    day: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],
-    mood: m.mood || 0
+    day:  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],
+    mood: m.moodScore || m.mood || 0
   }))
-
-  const emotions = [
-    { name: 'Joy',     score: 0.45 },
-    { name: 'Calm',    score: 0.28 },
-    { name: 'Anxious', score: 0.18 },
-    { name: 'Sad',     score: 0.09 },
-  ]
-
-  const demoRecs = [
-    'Try a 10-minute morning meditation to set a calm tone for your day.',
-    'You seem to journal most when stressed — keep that habit, it genuinely helps.',
-    'Try a short evening walk to wind down before bed.',
-    'Drink at least 8 glasses of water daily — hydration directly affects mood.',
-    'Reach out to one friend or family member this week.',
-  ]
 
   async function handleGenerate() {
     setLoading(true)
     try {
-      const res  = await generateReport()
+      const res  = await getWellnessReport()
       const data = res.data
-      setSummary(data.summary || data.report || '')
-      setRecs(data.recommendations || demoRecs)
+
+      // Backend returns WellnessResponse with these fields
+      setReport({
+        avgMoodScore:       data.avgMoodScore       || 0,
+        avgFrequentMood:    data.avgFrequentMood     || 'Unknown',
+        totalMoodLogs:      data.totalMoodLogs       || 0,
+        totalJournalEntries:data.totalJournalEntries || 0,
+        bestday:            data.bestday             || '—',
+        worstday:           data.worstday            || '—',
+        aiInsight:          data.aiInsight           || '',
+        emotions:           data.emotions            || [],
+        recommendations:    data.recommendations     || [],
+      })
+
       setGenerated(true)
       showToast('✅ Report generated! 📊')
+
     } catch {
-      setSummary(`You had a thoughtful week. Your mood showed a positive trend toward the weekend. Your journal entries reflected a mix of emotions — try to build on the positive moments and acknowledge the difficult ones with self-compassion.`)
-      setRecs(demoRecs)
+      // Demo report when backend not ready
+      setReport({
+        avgMoodScore:        6.4,
+        avgFrequentMood:     'Calm',
+        totalMoodLogs:       7,
+        totalJournalEntries: 3,
+        bestday:             'Friday',
+        worstday:            'Monday',
+        aiInsight:           'You had a thoughtful week. Your mood showed a positive trend toward the weekend. Your journal entries reflected a mix of emotions — try to build on the positive moments and acknowledge the difficult ones with self-compassion.',
+        emotions:            [],
+        recommendations: [
+          'Try a 10-minute morning meditation to set a calm tone for your day.',
+          'You seem to journal most when stressed — keep that habit, it genuinely helps.',
+          'Try a short evening walk to wind down before bed.',
+          'Drink at least 8 glasses of water daily — hydration directly affects mood.',
+          'Reach out to one friend or family member this week.',
+        ]
+      })
       setGenerated(true)
       showToast('✅ Report generated! 📊')
     } finally {
@@ -89,8 +99,12 @@ export default function Report() {
       <Sidebar />
 
       {toast && (
-        <div className="fixed top-6 right-6 bg-navy text-teal-light px-5 py-3 rounded-xl text-sm shadow-lg z-50 border-l-4 border-teal">
-          {toast}
+        <div className={`fixed top-6 right-6 px-5 py-3 rounded-xl text-sm shadow-lg z-50 border-l-4
+          ${toast.type === 'error'
+            ? 'bg-red-50 text-red-700 border-red-400'
+            : 'bg-navy text-teal-light border-teal'
+          }`}>
+          {toast.msg}
         </div>
       )}
 
@@ -99,7 +113,9 @@ export default function Report() {
         <div className="flex items-center justify-between mb-7">
           <div>
             <h2 className="text-2xl font-medium text-gray-800">Wellness Report 📊</h2>
-            <p className="text-sm text-gray-500 mt-1">Your personalised weekly mental health summary.</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Your personalised weekly mental health summary.
+            </p>
           </div>
           <button
             onClick={handleGenerate}
@@ -112,7 +128,7 @@ export default function Report() {
 
         {/* Hero */}
         <div className="rounded-2xl p-8 mb-6 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #141e35 0%, #1e3a5f 60%, #0f4a3a 100%)' }}>
+          style={{ background:'linear-gradient(135deg, #141e35 0%, #1e3a5f 60%, #0f4a3a 100%)' }}>
           <div className="absolute top-[-70px] right-[-50px] w-56 h-56 rounded-full bg-teal opacity-15" />
           <h2 className="text-teal-light text-xl font-medium mb-1 relative z-10">
             Weekly Wellness Summary
@@ -123,12 +139,13 @@ export default function Report() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { value: avg,          label: 'Average mood'    },
-            { value: moods.length, label: 'Moods logged'    },
-            { value: 'Joy',        label: 'Top emotion'     },
-            { value: '5🔥',        label: 'Logging streak'  },
+            { value: report?.avgMoodScore?.toFixed(1) || '—',        label:'Average mood'      },
+            { value: report?.totalMoodLogs       || moods.length,     label:'Moods logged'      },
+            { value: report?.avgFrequentMood     || '—',              label:'Top emotion'       },
+            { value: report?.totalJournalEntries || '—',              label:'Journal entries'   },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5 text-center hover:shadow-sm transition-all">
+            <div key={s.label}
+              className="bg-white rounded-2xl border border-gray-100 p-5 text-center hover:shadow-sm transition-all">
               <div className="text-3xl font-bold text-teal-dark">{s.value}</div>
               <div className="text-xs text-gray-500 mt-2">{s.label}</div>
             </div>
@@ -142,9 +159,11 @@ export default function Report() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <div className="text-sm font-medium text-gray-800">AI-generated summary</div>
-                <div className="text-xs text-gray-500 mt-1">Personalised insight from your data</div>
+                <div className="text-xs text-gray-500 mt-1">Personalised insight</div>
               </div>
-              <div className="w-11 h-11 bg-teal-pale rounded-xl flex items-center justify-center text-xl">🧠</div>
+              <div className="w-11 h-11 bg-teal-pale rounded-xl flex items-center justify-center text-xl">
+                🧠
+              </div>
             </div>
 
             {!generated ? (
@@ -161,8 +180,28 @@ export default function Report() {
                 </button>
               </div>
             ) : (
-              <div className="bg-teal-pale rounded-xl p-5 border-l-4 border-teal">
-                <p className="text-sm text-teal-dark leading-relaxed italic">"{summary}"</p>
+              <div>
+                <div className="bg-teal-pale rounded-xl p-5 border-l-4 border-teal mb-4">
+                  <p className="text-sm text-teal-dark leading-relaxed italic">
+                    "{report?.aiInsight}"
+                  </p>
+                </div>
+
+                {/* Best and worst day */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 rounded-xl p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Best day</div>
+                    <div className="text-sm font-medium text-green-700">
+                      {report?.bestday || '—'}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3 text-center">
+                    <div className="text-xs text-gray-500 mb-1">Toughest day</div>
+                    <div className="text-sm font-medium text-red-600">
+                      {report?.worstday || '—'}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -172,8 +211,8 @@ export default function Report() {
             <div className="text-sm font-medium text-gray-800 mb-5">Mood this week</div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData}>
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
+                <XAxis dataKey="day" tick={{ fontSize:11 }} />
+                <YAxis domain={[0,10]} tick={{ fontSize:11 }} />
                 <Tooltip />
                 <Bar dataKey="mood" fill="#3d8b75" radius={[6,6,0,0]} />
               </BarChart>
@@ -182,50 +221,26 @@ export default function Report() {
 
         </div>
 
-        <div className="grid grid-cols-2 gap-5">
-
-          {/* Emotions */}
+        {/* Recommendations */}
+        {generated && report?.recommendations?.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="text-sm font-medium text-gray-800 mb-5">Emotion breakdown</div>
-            {emotions.map(e => (
-              <div key={e.name} className="mb-4">
-                <div className="flex justify-between mb-1.5">
-                  <span className="text-sm text-gray-600">{e.name}</span>
-                  <span className="text-xs text-gray-400 font-medium">{Math.round(e.score * 100)}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-teal rounded-full transition-all duration-700"
-                    style={{ width: `${e.score * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Recommendations */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="text-sm font-medium text-gray-800 mb-5">Recommendations</div>
-            {!generated ? (
-              <div className="text-center py-8 text-gray-400">
-                <div className="text-4xl mb-3 opacity-40">💡</div>
-                <p className="text-sm">Generate your report first to see recommendations.</p>
-              </div>
-            ) : (
-              ['🌿','🧘','🚶','💧','🤝'].map((icon, i) => (
-                recs[i] && (
-                  <div key={i} className="flex gap-3 items-start py-3 border-b border-gray-50 last:border-0">
-                    <div className="w-8 h-8 bg-teal-pale rounded-lg flex items-center justify-center text-sm flex-shrink-0">
-                      {icon}
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed mt-1">{recs[i]}</p>
+            <div className="text-sm font-medium text-gray-800 mb-5">
+              Recommendations for you
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {report.recommendations.map((rec, i) => (
+                <div key={i}
+                  className="flex gap-3 items-start p-4 bg-cream rounded-xl border border-gray-100">
+                  <div className="w-8 h-8 bg-teal-pale rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+                    {['🌿','🧘','🚶','💧','🤝','🌙','😴'][i % 7]}
                   </div>
-                )
-              ))
-            )}
+                  <p className="text-sm text-gray-600 leading-relaxed">{rec}</p>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
 
-        </div>
       </main>
     </div>
   )
