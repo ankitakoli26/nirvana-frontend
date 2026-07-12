@@ -43,8 +43,6 @@ export default function Clinics() {
         return
       }
 
-      const lat = parseFloat(geoData[0].lat)
-      const lng = parseFloat(geoData[0].lon)
 
       const clinicRes  = await fetch(
         `https://nominatim.openstreetmap.org/search?q=mental+health+clinic+${encodeURIComponent(city)}&format=json&limit=8`,

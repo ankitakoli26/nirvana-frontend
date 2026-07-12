@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { logMood, getMoodHistory } from '../api/api'
 
+const FALLBACK_TIME = Date.now()
+const FALLBACK_DATE = new Date(FALLBACK_TIME).toISOString()
+
 const moodChips = [
   { label: 'Happy',    emoji: '😄' },
   { label: 'Calm',     emoji: '😌' },
@@ -42,8 +45,8 @@ export default function MoodLog() {
       .catch(() => {
         setHistory([
           { moodScore:7, moodLabel:'calm',    note:'Had a peaceful morning.',    loggedAt: new Date().toISOString() },
-          { moodScore:5, moodLabel:'anxious', note:'Worried about deadline.',    loggedAt: new Date(Date.now()-86400000).toISOString() },
-          { moodScore:8, moodLabel:'happy',   note:'Great workout today!',       loggedAt: new Date(Date.now()-172800000).toISOString() },
+          { moodScore:5, moodLabel:'anxious', note:'Worried about deadline.',    loggedAt: new Date(FALLBACK_TIME - 86400000).toISOString() },
+          { moodScore:8, moodLabel:'happy',   note:'Great workout today!',       loggedAt: new Date(FALLBACK_TIME - 172800000).toISOString() },
         ])
       })
   }
@@ -241,7 +244,7 @@ export default function MoodLog() {
                   const color = s <= 3 ? '#d85a6a' : s <= 6 ? '#ef9f27' : '#3d8b75'
                   const bg    = s <= 3 ? '#fde8eb' : s <= 6 ? '#faeeda' : '#e1f5ee'
                   const icon  = s <= 3 ? '😢' : s <= 5 ? '😐' : s <= 7 ? '🙂' : '😄'
-                  const date  = new Date(m.loggedAt || Date.now())
+                  const date  = new Date(m.loggedAt || FALLBACK_DATE)
                     .toLocaleDateString('en-IN', { day:'numeric', month:'short' })
 
                   return (
