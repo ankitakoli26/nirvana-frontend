@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { getMyPatients, getDoctorPatientMoods, getDoctorPatientJournals } from '../api/api'
 
+const NOW = Date.now()
+
 export default function DoctorDashboard() {
   const [patients,       setPatients]       = useState([])
   const [selectedPatient,setSelectedPatient]= useState(null)
@@ -9,12 +11,6 @@ export default function DoctorDashboard() {
   const [journals,       setJournals]       = useState([])
   const [loading,        setLoading]        = useState(true)
   const [tab,            setTab]            = useState('mood')
-  const [toast,          setToast]          = useState('')
-
-  function showToast(msg, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(''), 3000)
-  }
 
   // Load all patients on page load
   useEffect(() => {
@@ -45,9 +41,9 @@ export default function DoctorDashboard() {
       setMoods(Array.isArray(moodRes.data) ? moodRes.data : [])
     } catch {
       setMoods([
-        { moodScore: 7, moodLabel: 'calm',    note: 'Had a peaceful morning.', loggedAt: new Date().toISOString() },
-        { moodScore: 5, moodLabel: 'anxious', note: 'Worried about exam.',     loggedAt: new Date(Date.now()-86400000).toISOString() },
-        { moodScore: 8, moodLabel: 'happy',   note: 'Great workout today!',    loggedAt: new Date(Date.now()-172800000).toISOString() },
+        { moodScore: 7, moodLabel: 'calm',    note: 'Had a peaceful morning.', loggedAt: new Date(NOW).toISOString() },
+        { moodScore: 5, moodLabel: 'anxious', note: 'Worried about exam.',     loggedAt: new Date(NOW - 86400000).toISOString() },
+        { moodScore: 8, moodLabel: 'happy',   note: 'Great workout today!',    loggedAt: new Date(NOW - 172800000).toISOString() },
       ])
     }
 
@@ -56,8 +52,8 @@ export default function DoctorDashboard() {
       setJournals(Array.isArray(journalRes.data) ? journalRes.data : [])
     } catch {
       setJournals([
-        { id:1, title:'Morning thoughts',   content:'Feeling better today after meditation.',         createdAt: new Date().toISOString() },
-        { id:2, title:'A tough afternoon',  content:'Struggled to focus. Anxiety crept in again.',   createdAt: new Date(Date.now()-86400000).toISOString() },
+        { id:1, title:'Morning thoughts',   content:'Feeling better today after meditation.',         createdAt: new Date(NOW).toISOString() },
+        { id:2, title:'A tough afternoon',  content:'Struggled to focus. Anxiety crept in again.',   createdAt: new Date(NOW - 86400000).toISOString() },
       ])
     }
   }
@@ -70,15 +66,6 @@ export default function DoctorDashboard() {
     <div className="flex min-h-screen bg-cream">
       <Sidebar />
 
-      {toast && (
-        <div className={`fixed top-6 right-6 px-5 py-3 rounded-xl text-sm shadow-lg z-50 border-l-4
-          ${toast.type === 'error'
-            ? 'bg-red-50 text-red-700 border-red-400'
-            : 'bg-navy text-teal-light border-teal'
-          }`}>
-          {toast.msg}
-        </div>
-      )}
 
       <main className="ml-60 flex-1 p-8">
 
@@ -223,7 +210,7 @@ export default function DoctorDashboard() {
                         const s     = m.moodScore || 0
                         const color = s <= 3 ? '#d85a6a' : s <= 6 ? '#ef9f27' : '#3d8b75'
                         const bg    = s <= 3 ? '#fde8eb' : s <= 6 ? '#faeeda' : '#e1f5ee'
-                        const date  = new Date(m.loggedAt || Date.now())
+                        const date  = new Date(m.loggedAt || NOW)
                           .toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
                         return (
                           <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
@@ -258,7 +245,7 @@ export default function DoctorDashboard() {
                       </div>
                     ) : (
                       journals.map((j) => {
-                        const date = new Date(j.createdAt || Date.now())
+                        const date = new Date(j.createdAt || NOW)
                           .toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
                         return (
                           <div key={j.id}

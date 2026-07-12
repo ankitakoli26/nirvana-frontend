@@ -1,8 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --color-navy: #141e35;
+  --color-navy-mid: #1a2744;
+  --color-teal: #3d8b75;
+  --color-teal-dark: #0f4a3a;
+  --color-teal-light: #a8d8c8;
+  --color-teal-pale: #e1f5ee;
+  --color-cream: #faf7f2;
+  --font-sans: 'DM Sans', sans-serif;
+}
 
 * {
   box-sizing: border-box;
