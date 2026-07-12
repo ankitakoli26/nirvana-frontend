@@ -26,7 +26,11 @@ export default function Consent() {
     }
   }
 
-  useEffect(() => { loadDoctors() }, [])
+  useEffect(() => {
+    // loadDoctors synchronizes this view with the persisted doctor list on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDoctors()
+  }, [])
 
   async function handleInvite(e) {
     e.preventDefault()
