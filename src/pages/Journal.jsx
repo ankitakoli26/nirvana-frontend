@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { getJournals, createJournal, deleteJournal } from '../api/api'
 
+const FALLBACK_TIME = Date.now()
+const FALLBACK_DATE = new Date(FALLBACK_TIME).toISOString()
+
 export default function Journal() {
   const [title,    setTitle]    = useState('')
   const [content,  setContent]  = useState('')
@@ -36,7 +39,7 @@ export default function Journal() {
             id: 2,
             title: 'A tough afternoon',
             content: 'Presentation did not go as planned. Feeling anxious but I know tomorrow will be better.',
-            createdAt: new Date(Date.now() - 86400000).toISOString()
+            createdAt: new Date(FALLBACK_TIME - 86400000).toISOString()
           }
         ])
       })
@@ -59,7 +62,7 @@ export default function Journal() {
     } catch {
       showToast('✅ Entry saved (demo)! 🧠')
       setJournals(prev => [{
-        id: Date.now(),
+        id: FALLBACK_DATE,
         title,
         content,
         createdAt: new Date().toISOString()
@@ -184,7 +187,7 @@ export default function Journal() {
               </div>
             ) : (
               [...journals].reverse().map((j) => {
-                const date = new Date(j.createdAt || Date.now())
+                const date = new Date(j.createdAt || FALLBACK_DATE)
                   .toLocaleDateString('en-IN', {
                     day: 'numeric', month: 'short', year: 'numeric'
                   })

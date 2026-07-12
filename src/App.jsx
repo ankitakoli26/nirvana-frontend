@@ -14,12 +14,6 @@ import Consent    from './pages/Consent'
 
 import DoctorDashboard from './pages/DoctorDashboard'
 
-// Protects any route — redirects to login if not logged in
-function Protected({ children }) {
-  const token = useAuthStore((s) => s.token)
-  return token ? children : <Navigate to="/login" replace />
-}
-
 // Only PATIENT can access
 function PatientOnly({ children }) {
   const { token, role } = useAuthStore()
