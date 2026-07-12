@@ -8,7 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
-  const { setAuth, role }       = useAuthStore()
+  const { setAuth }             = useAuthStore()
   const navigate                = useNavigate()
 
   async function handleLogin(e) {
@@ -44,7 +44,7 @@ export default function Login() {
       {/* LEFT — dark navy panel */}
       <div className="bg-navy flex flex-col justify-center px-16 relative overflow-hidden">
         <div className="absolute top-[-100px] right-[-80px] w-80 h-80 rounded-full bg-teal opacity-10" />
-        <div className="absolute bottom-[40px] left-[-60px] w-52 h-52 rounded-full bg-teal opacity-8" />
+        <div className="absolute bottom-[40px] left-[-60px] w-52 h-52 rounded-full bg-teal opacity-[0.08]" />
 
         <div className="font-serif text-4xl text-teal-light mb-12 relative z-10">
           Nirvana
